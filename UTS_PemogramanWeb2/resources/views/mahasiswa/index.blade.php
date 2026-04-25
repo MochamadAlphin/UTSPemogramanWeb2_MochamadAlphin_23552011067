@@ -14,7 +14,6 @@
         background-attachment: fixed;
     }
 
-    /* Overlay agar konten tetap terbaca jelas */
     body::before {
         content: "";
         position: fixed;
@@ -58,7 +57,6 @@
         color: white;
     }
 
-    /* Table Styling */
     .table-modern {
         border-collapse: separate;
         border-spacing: 0 12px;
@@ -110,7 +108,6 @@
     .btn-edit:hover { background: #fff9e6; color: #ffc107; border-color: #ffc107; }
     .btn-delete:hover { background: #fff5f6; color: #dc3545; border-color: #dc3545; }
 
-    /* Search Input */
     .search-container .form-control {
         border: 2px solid #f3f4f6;
         border-radius: 14px 0 0 14px;
@@ -124,7 +121,6 @@
         color: #9ca3af;
     }
 
-    /* Modal Styling */
     .modal-content { 
         border-radius: 24px; 
         border: none; 
@@ -162,16 +158,16 @@
     @endif
 
     <div class="custom-card">
-        {{-- Search Filter --}}
-        <form action="{{ route('mahasiswa.index') }}" method="GET" class="mb-4">
+        {{-- Search Filter (Real-time JS) --}}
+        <div class="mb-4">
             <div class="input-group search-container" style="max-width: 400px;">
-                <input type="text" name="search" class="form-control" placeholder="Cari NIM atau Nama..." value="{{ request('search') }}">
+                <input type="text" id="searchInput" class="form-control" placeholder="Cari NIM atau Nama ">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
             </div>
-        </form>
+        </div>
 
         <div class="table-responsive">
-            <table class="table table-modern align-middle">
+            <table class="table table-modern align-middle" id="mahasiswaTable">
                 <thead>
                     <tr>
                         <th class="ps-4">NIM</th>
@@ -182,9 +178,9 @@
                 </thead>
                 <tbody>
                     @forelse($mahasiswa as $mhs)
-                    <tr>
-                        <td class="ps-4 fw-bold text-dark">{{ $mhs->nim }}</td>
-                        <td class="fw-semibold" style="color: #2d2a70;">{{ $mhs->nama }}</td>
+                    <tr class="mahasiswa-row">
+                        <td class="ps-4 fw-bold text-dark nim-text">{{ $mhs->nim }}</td>
+                        <td class="fw-semibold nama-text" style="color: #2d2a70;">{{ $mhs->nama }}</td>
                         <td><span class="badge-jurusan">{{ $mhs->jurusan->nama_jurusan }}</span></td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
@@ -204,20 +200,25 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
+                    <tr id="emptyRow">
                         <td colspan="4" class="text-center py-5 text-muted">Data mahasiswa tidak ditemukan.</td>
                     </tr>
                     @endforelse
+                    {{-- Row tambahan jika hasil search JS kosong --}}
+                    <tr id="noResultRow" style="display: none;">
+                        <td colspan="4" class="text-center py-5 text-muted">Pencarian tidak ditemukan.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="mt-4 d-flex justify-content-end">
+        <div class="mt-4 d-flex justify-content-end" id="paginationWrapper">
             {{ $mahasiswa->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>
 
+{{-- MODAL TAMBAH --}}
 <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -255,6 +256,7 @@
     </div>
 </div>
 
+{{-- MODAL EDIT --}}
 @foreach($mahasiswa as $mhs)
 <div class="modal fade" id="modalEdit{{ $mhs->id_mahasiswa }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -294,5 +296,40 @@
     </div>
 </div>
 @endforeach
+
+{{-- JAVASCRIPT UNTUK SEARCH REAL-TIME --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const tableRows = document.querySelectorAll('.mahasiswa-row');
+    const noResultRow = document.getElementById('noResultRow');
+    const paginationWrapper = document.getElementById('paginationWrapper');
+
+    searchInput.addEventListener('input', function() {
+        const filter = searchInput.value.toLowerCase();
+        let visibleCount = 0;
+
+        tableRows.forEach(row => {
+            const nim = row.querySelector('.nim-text').textContent.toLowerCase();
+            const nama = row.querySelector('.nama-text').textContent.toLowerCase();
+
+            if (nim.includes(filter) || nama.includes(filter)) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        // Tampilkan pesan jika tidak ada hasil
+        noResultRow.style.display = (visibleCount === 0 && filter !== "") ? "" : "none";
+        
+        // Sembunyikan pagination saat mencari agar tidak membingungkan
+        // karena search ini hanya memfilter data yang ada di halaman aktif
+        paginationWrapper.style.opacity = filter === "" ? "1" : "0.3";
+        paginationWrapper.style.pointerEvents = filter === "" ? "auto" : "none";
+    });
+});
+</script>
 
 @endsection

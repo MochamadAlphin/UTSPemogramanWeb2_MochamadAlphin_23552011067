@@ -102,6 +102,20 @@
     .btn-edit:hover { background: #fff9e6; color: #ffc107; border-color: #ffc107; }
     .btn-delete:hover { background: #fff5f6; color: #dc3545; border-color: #dc3545; }
 
+    /* Search Input Styling */
+    .search-container .form-control {
+        border: 2px solid #f3f4f6;
+        border-radius: 14px 0 0 14px;
+        padding: 12px 20px;
+    }
+    .search-container .input-group-text {
+        border: 2px solid #f3f4f6;
+        border-left: none;
+        border-radius: 0 14px 14px 0;
+        background: white;
+        color: #9ca3af;
+    }
+
     /* Modal Styling */
     .modal-content { 
         border-radius: 24px; 
@@ -140,8 +154,16 @@
     @endif
 
     <div class="custom-card">
+        {{-- Search Input Section --}}
+        <div class="mb-4">
+            <div class="input-group search-container" style="max-width: 400px;">
+                <input type="text" id="searchInput" class="form-control" placeholder="Cari ID atau Nama Jurusan...">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+            </div>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-modern align-middle">
+            <table class="table table-modern align-middle" id="jurusanTable">
                 <thead>
                     <tr>
                         <th class="ps-4">ID JURUSAN</th>
@@ -151,18 +173,16 @@
                 </thead>
                 <tbody>
                     @forelse($jurusan as $j)
-                    <tr>
-                        <td class="ps-4 fw-bold text-dark">#{{ $j->id_jurusan }}</td>
-                        <td class="fw-semibold" style="color: #2d2a70;">{{ $j->nama_jurusan }}</td>
+                    <tr class="jurusan-row">
+                        <td class="ps-4 fw-bold text-dark id-text">#{{ $j->id_jurusan }}</td>
+                        <td class="fw-semibold nama-text" style="color: #2d2a70;">{{ $j->nama_jurusan }}</td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
-                                {{-- Tombol Edit --}}
                                 <button type="button" class="btn-action btn-edit text-warning" 
                                         data-bs-toggle="modal" data-bs-target="#modalEdit{{ $j->id_jurusan }}">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
                                 
-                                {{-- Form Hapus --}}
                                 <form action="{{ route('jurusan.destroy', $j->id_jurusan) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-action btn-delete text-danger" 
@@ -174,16 +194,21 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
+                    <tr id="emptyRow">
                         <td colspan="3" class="text-center py-5 text-muted">Belum ada data jurusan.</td>
                     </tr>
                     @endforelse
+                    {{-- Row untuk hasil pencarian tidak ditemukan --}}
+                    <tr id="noResultRow" style="display: none;">
+                        <td colspan="3" class="text-center py-5 text-muted">Data jurusan tidak ditemukan.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
+{{-- MODAL TAMBAH --}}
 <div class="modal fade" id="modalTambahJurusan" tabindex="-1" aria-labelledby="modalTambahLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -208,6 +233,7 @@
     </div>
 </div>
 
+{{-- MODAL EDIT --}}
 @foreach($jurusan as $j)
 <div class="modal fade" id="modalEdit{{ $j->id_jurusan }}" tabindex="-1" aria-labelledby="modalEditLabel{{ $j->id_jurusan }}" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -233,5 +259,42 @@
     </div>
 </div>
 @endforeach
+
+{{-- LOGIKA SEARCH REAL-TIME --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const tableRows = document.querySelectorAll('.jurusan-row');
+        const noResultRow = document.getElementById('noResultRow');
+        const emptyRow = document.getElementById('emptyRow');
+
+        searchInput.addEventListener('input', function() {
+            const filter = searchInput.value.toLowerCase();
+            let visibleCount = 0;
+
+            tableRows.forEach(row => {
+                const idText = row.querySelector('.id-text').textContent.toLowerCase();
+                const namaText = row.querySelector('.nama-text').textContent.toLowerCase();
+
+                // Cek apakah input cocok dengan ID atau Nama Jurusan
+                if (idText.includes(filter) || namaText.includes(filter)) {
+                    row.style.display = "";
+                    visibleCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // Sembunyikan/Tampilkan pesan error jika data tidak ada
+            if (visibleCount === 0 && filter !== "") {
+                noResultRow.style.display = "";
+                if(emptyRow) emptyRow.style.display = "none";
+            } else {
+                noResultRow.style.display = "none";
+                if(emptyRow && filter === "") emptyRow.style.display = "";
+            }
+        });
+    });
+</script>
 
 @endsection

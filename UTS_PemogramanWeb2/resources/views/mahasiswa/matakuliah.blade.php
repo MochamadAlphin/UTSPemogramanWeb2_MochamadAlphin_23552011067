@@ -57,6 +57,24 @@
         color: white;
     }
 
+    /* Search Box Styling */
+    .search-box {
+        position: relative;
+        max-width: 400px;
+    }
+    .search-box .form-control {
+        padding-left: 45px;
+        border-radius: 14px;
+        border: 2px solid #f3f4f6;
+    }
+    .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+    }
+
     .table-modern {
         border-collapse: separate;
         border-spacing: 0 12px;
@@ -136,14 +154,20 @@
 </style>
 
 <div class="container container-main">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <h2 class="header-title mb-1">Mata Kuliah</h2>
             <p class="text-muted small mb-0">Manajemen kurikulum per program studi UTB</p>
         </div>
-        <button class="btn btn-utb shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
-            <i class="bi bi-plus-circle-fill me-2"></i>Tambah MK
-        </button>
+        <div class="d-flex gap-3">
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="searchInput" class="form-control shadow-sm" placeholder="Cari mata kuliah atau jurusan...">
+            </div>
+            <button class="btn btn-utb shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                <i class="bi bi-plus-circle-fill me-2"></i>Tambah MK
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -154,7 +178,7 @@
 
     <div class="custom-card">
         <div class="table-responsive">
-            <table class="table table-modern align-middle">
+            <table class="table table-modern align-middle" id="mkTable">
                 <thead>
                     <tr>
                         <th class="ps-4">ID</th>
@@ -166,11 +190,11 @@
                 </thead>
                 <tbody>
                     @foreach($matakuliah as $mk)
-                    <tr>
+                    <tr class="mk-row">
                         <td class="ps-4 fw-bold text-dark">#{{ $mk->id_matakuliah }}</td>
-                        <td class="fw-semibold" style="color: #2d2a70;">{{ $mk->nama_matakuliah }}</td>
+                        <td class="fw-semibold mk-name" style="color: #2d2a70;">{{ $mk->nama_matakuliah }}</td>
                         <td>
-                            <span class="badge-jurusan">
+                            <span class="badge-jurusan mk-jurusan">
                                 <i class="bi bi-mortarboard-fill me-1"></i>
                                 {{ $mk->jurusan->nama_jurusan ?? 'Tidak Ada Jurusan' }}
                             </span>
@@ -194,12 +218,20 @@
                         </td>
                     </tr>
                     @endforeach
+
+                    <tr id="noDataRow" style="display: none;">
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-search mb-2 d-block fs-2" style="opacity: 0.3;"></i>
+                            Data tidak ditemukan
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
+{{-- MODAL TAMBAH --}}
 <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg">
@@ -237,6 +269,7 @@
     </div>
 </div>
 
+{{-- MODAL EDIT --}}
 @foreach($matakuliah as $mk)
 <div class="modal fade" id="modalEdit{{ $mk->id_matakuliah }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -276,5 +309,36 @@
     </div>
 </div>
 @endforeach
+
+{{-- SCRIPT SEARCH REAL-TIME --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const mkRows = document.querySelectorAll('.mk-row');
+        const noDataRow = document.getElementById('noDataRow');
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            let hasResults = false;
+
+            mkRows.forEach(row => {
+                // Mengambil teks dari elemen nama mata kuliah dan jurusan
+                const mkName = row.querySelector('.mk-name').textContent.toLowerCase();
+                const jurusanName = row.querySelector('.mk-jurusan').textContent.toLowerCase();
+
+                // Periksa apakah query ada di salah satu kolom tersebut
+                if (mkName.includes(query) || jurusanName.includes(query)) {
+                    row.style.display = '';
+                    hasResults = true;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Tampilkan pesan jika tidak ada data yang cocok
+            noDataRow.style.display = hasResults ? 'none' : 'table-row';
+        });
+    });
+</script>
 
 @endsection
